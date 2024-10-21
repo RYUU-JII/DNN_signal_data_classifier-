@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>627</width>
+    <height>389</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QTableWidget" name="signal_table">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>30</y>
+     <width>221</width>
+     <height>331</height>
+    </rect>
+   </property>
+   <property name="dragEnabled">
+    <bool>true</bool>
+   </property>
+   <property name="rowCount">
+    <number>10</number>
+   </property>
+   <property name="columnCount">
+    <number>1</number>
+   </property>
+   <attribute name="horizontalHeaderStretchLastSection">
+    <bool>true</bool>
+   </attribute>
+   <attribute name="verticalHeaderCascadingSectionResizes">
+    <bool>false</bool>
+   </attribute>
+   <attribute name="verticalHeaderStretchLastSection">
+    <bool>true</bool>
+   </attribute>
+   <row>
+    <property name="text">
+     <string>attention</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>meditation</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>delta</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>theta</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>lowAlpha</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>highAlpha</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>lowBeta</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>highBeta</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>lowGamma</string>
+    </property>
+   </row>
+   <row>
+    <property name="text">
+     <string>midGamma</string>
+    </property>
+   </row>
+   <column>
+    <property name="text">
+     <string>value</string>
+    </property>
+   </column>
+  </widget>
+  <widget class="QWidget" name="chartWidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>30</y>
+     <width>311</width>
+     <height>331</height>
+    </rect>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
