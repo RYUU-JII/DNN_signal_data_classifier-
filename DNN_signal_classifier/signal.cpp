@@ -1,99 +1,93 @@
-#include QThread
-#include QSerialPort
-#include QSerialPortInfo
-#include QObject
-#include QDebug
-#include QByteArray
-#include QMap
-#include QString
+#include <QThread>
+#include <QSerialPort>
+#include <QObject>
+#include <QDebug>
+#include <QMap>
+#include <QString>
 
-class NeuroPyWorker  public QThread {
+class NeuroPyWorker : public QThread {
     Q_OBJECT
 
-public
-    NeuroPyWorker(const QString &portName, int baudRate = 57600, int timeout = 1000, QObject parent = nullptr)
-         QThread(parent), portName(portName), baudRate(baudRate), timeout(timeout), threadRun(false) {
+public:
+    NeuroPyWorker(const QString& portName, int baudRate = 57600, int timeout = 1000, QObject* parent = nullptr)
+        : QThread(parent), portName(portName), baudRate(baudRate), timeout(timeout) {
         serial = new QSerialPort(this);
+        isRunning = false;
     }
 
     ~NeuroPyWorker() {
-        stop();
-        closeSerialPort();
+        stop()
     }
 
-signals
-    void emitSignal(QMapQString, int data);   UI로 데이터 전송
-    void errorSignal(const QString &error);     에러 메시지 전송
+signals:
+    void dataReady(QMap<QString, int> data);  // 데이터를 UI로 보내는 신호
+    void errorOccurred(const QString& error); // 에러 신호
 
-protected
+protected:
     void run() override {
         if (!openSerialPort()) {
-            emit errorSignal(시리얼 연결 실패);
+            emit errorOccurred("포트 열기 실패.");
             return;
         }
 
-        threadRun = true;
-
-        while (threadRun) {
+        isRunning = true;
+        while (isRunning) {
             try {
-                QMapQString, int data = readPacket();
-                if (!data.isEmpty()) {
-                    emit emitSignal(data);
+                auto packet = readPacket();
+                if (!packet.isEmpty()) {
+                    emit dataReady(packet);  // 데이터를 UI로 전송
                 }
-            } catch (const stdexception &e) {
-                emit errorSignal(QString(데이터 읽기 실패 %1).arg(e.what()));
+            }
+            catch (const std::exception& e) {
+                emit errorOccurred(QString("데이터 읽기 실패: %1").arg(e.what()));
             }
         }
 
         closeSerialPort();
     }
 
-private
-    QSerialPort serial;
+private:
+    QSerialPort* serial;
     QString portName;
     int baudRate;
     int timeout;
-    bool threadRun;
+    bool isRunning;
 
     bool openSerialPort() {
-        serial-setPortName(portName);
-        serial-setBaudRate(baudRate);
-        serial-setDataBits(QSerialPortData8);
-        serial-setParity(QSerialPortNoParity);
-        serial-setStopBits(QSerialPortOneStop);
-        serial-setFlowControl(QSerialPortNoFlowControl);
+        serial->setPortName(portName);
+        serial->setBaudRate(baudRate);
+        serial->setDataBits(QSerialPort::Data8);
+        serial->setParity(QSerialPort::NoParity);
+        serial->setStopBits(QSerialPort::OneStop);
+        serial->setFlowControl(QSerialPort::NoFlowControl);
 
-        if (!serial-open(QIODeviceReadOnly)) {
-            qDebug()  Failed to open port  portName;
+        if (!serial->open(QIODevice::ReadOnly)) {
+            qDebug() << "포트 열기 실패: " << portName;
             return false;
         }
 
-        qDebug()  portName  에 연결됨.;
+        qDebug() << "포트 열림 (" << portName << ")";
         return true;
     }
 
-    QMapQString, int readPacket() {
-        QMapQString, int data;
-        QByteArray payload;
-        int checksum = 0;
-
-         헤더 검사 (aa aa)
+    QMap<QString, int> readPacket() {
         if (!waitForHeader()) {
-            throw stdruntime_error(헤더를 찾지 못했습니다.);
+            throw std::runtime_error("헤더 없음");
         }
 
-         페이로드 읽기
+        QByteArray payload;
         int payloadLength = readByte().toInt(nullptr, 16);
-        for (int i = 0; i  payloadLength; ++i) {
+        int checksum = 0;
+
+        for (int i = 0; i < payloadLength; ++i) {
             QString byteStr = readByte();
             payload.append(byteStr.toUInt(nullptr, 16));
             checksum += byteStr.toInt(nullptr, 16);
         }
 
-         체크섬 검증
         checksum = ~checksum & 0xFF;
         if (checksum != readByte().toInt(nullptr, 16)) {
-            throw stdruntime_error(체크섬 오류);
+            throw std::runtime_error("체크섬 에러");
         }
 
         return parsePayload(payload);
@@ -101,7 +95,7 @@ private
 
     bool waitForHeader() {
         while (true) {
-            if (readByte() == aa && readByte() == aa) {
+            if (readByte() == "aa" && readByte() == "aa") {
                 return true;
             }
         }
@@ -109,78 +103,72 @@ private
     }
 
     QString readByte() {
-        if (!serial-waitForReadyRead(timeout)) {
-            throw stdruntime_error(데이터 읽기 시간 초과);
+        if (!serial->waitForReadyRead(timeout)) {
+            throw std::runtime_error("데이터 수신 불가");
         }
-        QByteArray data = serial-read(1);
-        return QStringnumber(data[0], 16).rightJustified(2, '0');
+        QByteArray data = serial->read(1);
+        return QString::number(data[0], 16).rightJustified(2, '0');
     }
 
-    QMapQString, int parsePayload(const QByteArray &payload) {
-        QMapQString, int data;
+    QMap<QString, int> parsePayload(const QByteArray& payload) {
+        QMap<QString, int> data;
         int i = 0;
 
-        try {
-            while (i  payload.size()) {
-                QString code = QStringnumber(payload[i], 16).rightJustified(2, '0');
-                if (code == 02) {
-                    ++i;
-                    data[poorSignal] = payload[i];
-                } else if (code == 04) {
-                    ++i;
-                    data[attention] = payload[i];
-                } else if (code == 05) {
-                    ++i;
-                    data[meditation] = payload[i];
-                } else if (code == 16) {
-                    ++i;
-                    data[blinkStrength] = payload[i];
-                } else if (code == 80) {
-                    i += 2;
-                    int rawValue = (payload[i]  8) + payload[i + 1];
-                    if (rawValue  32768) rawValue -= 65536;
-                } else if (code == 83) {
-                    ++i;
-                    data.unite(parseEEG(payload, i));
-                    i += 24;   다음 코드로 이동
-                }
-                ++i;
+        while (i < payload.size()) {
+            QString code = QString::number(payload[i], 16).rightJustified(2, '0');
+            if (code == "02") {
+                data["poorSignal"] = payload[++i];
             }
-        } catch (const stdexception &e) {
-            throw stdruntime_error(QString(데이터 파싱 오류 %1).arg(e.what()).toStdString());
+            else if (code == "04") {
+                data["attention"] = payload[++i];
+            }
+            else if (code == "05") {
+                data["meditation"] = payload[++i];
+            }
+            else if (code == "16") {
+                data["blinkStrength"] = payload[++i];
+            }
+            else if (code == "80") {
+                int rawValue = (payload[++i] << 8) + payload[++i];
+                if (rawValue > 32768) rawValue -= 65536;
+                // row data
+            }
+            else if (code == "83") {
+                data.unite(parseEEG(payload, ++i));
+                i += 24;  // 다음으로
+            }
+            ++i;
         }
 
         return data;
     }
 
-    QMapQString, int parseEEG(const QByteArray &payload, int index) {
-        QMapQString, int eegData;
-        QStringList labels = {delta, theta, lowAlpha, highAlpha,
-                              lowBeta, highBeta, lowGamma, midGamma};
+    QMap<QString, int> parseEEG(const QByteArray& payload, int index) {
+        QMap<QString, int> eegData;
+        QStringList labels = { "delta", "theta", "lowAlpha", "highAlpha",
+                              "lowBeta", "highBeta", "lowGamma", "midGamma" };
 
-        for (const QString &label  labels) {
-            int val0 = payload[index];
-            int val1 = payload[index + 1];
-            int val2 = payload[index + 2];
-            eegData[label] = (val0  16) + (val1  8) + val2;
+        for (const QString& label : labels) {
+            int value = (payload[index] << 16) + (payload[index + 1] << 8) + payload[index + 2];
+            eegData[label] = value;
             index += 3;
         }
 
         return eegData;
     }
 
-public slots
+public slots:
     void stop() {
-        threadRun = false;
+        isRunning = false;
         quit();
-        wait();
+        wait()
         closeSerialPort();
     }
 
     void closeSerialPort() {
-        if (serial-isOpen()) {
-            serial-close();
-            qDebug()  portName  포트가 닫혔습니다.;
+        if (serial->isOpen()) {
+            serial->close();
+            qDebug() << "포트가 닫혔습니다: " << portName;
         }
     }
 };
